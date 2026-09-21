@@ -73,6 +73,29 @@ local function GetZoneInfo()
     return zone, subzone
 end
 
+-- Get specialization (Retail) or talent tree with most points (Classic)
+local function GetPlayerSpec()
+    if GetSpecialization then
+        local specIndex = GetSpecialization()
+        if specIndex then
+            local _, specName = GetSpecializationInfo(specIndex)
+            return specName or ""
+        end
+    elseif GetNumTalentTabs and GetTalentTabInfo then
+        local maxPoints = 0
+        local activeSpec = ""
+        for tabIndex = 1, GetNumTalentTabs() do
+            local name, _, pointsSpent = GetTalentTabInfo(tabIndex)
+            if pointsSpent and pointsSpent > maxPoints then
+                maxPoints = pointsSpent
+                activeSpec = name or ""
+            end
+        end
+        return activeSpec
+    end
+    return ""
+end
+
 -- Update current context
 function UpdateContext()
     -- Wrap in pcall to prevent crashes
@@ -145,13 +168,7 @@ function UpdateContext()
         Context.class = classToken or ""
 
         -- Get specialization
-        local specIndex = GetSpecialization()
-        if specIndex then
-            local _, specName = GetSpecializationInfo(specIndex)
-            Context.spec = specName or ""
-        else
-            Context.spec = ""
-        end
+        Context.spec = GetPlayerSpec()
 
         Context.lastUpdate = time()
     end)
@@ -300,6 +317,9 @@ EventFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
 EventFrame:RegisterEvent("ENCOUNTER_START")
 EventFrame:RegisterEvent("ENCOUNTER_END")
 EventFrame:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
+EventFrame:RegisterEvent("PLAYER_TALENT_UPDATE")
+EventFrame:RegisterEvent("CHARACTER_POINTS_CHANGED")
+EventFrame:RegisterEvent("PLAYER_LOGOUT")
 
 EventFrame:SetScript("OnEvent", function(self, event, ...)
     if event == "PLAYER_LOGIN" then
@@ -323,20 +343,10 @@ EventFrame:SetScript("OnEvent", function(self, event, ...)
     elseif event == "ENCOUNTER_END" then
         Context.boss = ""
         SaveContext()
-    elseif event == "PLAYER_SPECIALIZATION_CHANGED" then
-        local specIndex = GetSpecialization()
-        if specIndex then
-            local _, specName = GetSpecializationInfo(specIndex)
-            Context.spec = specName or ""
-        end
+    elseif event == "PLAYER_SPECIALIZATION_CHANGED" or event == "PLAYER_TALENT_UPDATE" or event == "CHARACTER_POINTS_CHANGED" then
+        Context.spec = GetPlayerSpec()
         SaveContext()
-    end
-end)
-
--- Force save on logout
-EventFrame:RegisterEvent("PLAYER_LOGOUT")
-EventFrame:SetScript("OnEvent", function(self, event)
-    if event == "PLAYER_LOGOUT" then
+    elseif event == "PLAYER_LOGOUT" then
         SaveContext()
     end
 end)

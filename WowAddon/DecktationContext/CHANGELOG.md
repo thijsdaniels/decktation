@@ -1,5 +1,18 @@
 # Decktation Context Addon - Changelog
 
+## Version 1.1.1 (2026-09-21)
+
+### Classic & WoW Forever Compatibility Update
+
+**Fixed:**
+- Fixed Lua error calling nil `GetSpecialization()` on Classic Era and WoW Forever clients
+- Added talent tree fallback to determine active spec based on spent talent points in Classic
+- Registered `PLAYER_TALENT_UPDATE` and `CHARACTER_POINTS_CHANGED` events
+- Fixed duplicate `EventFrame:SetScript("OnEvent")` call overwriting main event handlers
+
+**Added:**
+- Added interface numbers for Classic Era and WoW Forever to TOC
+
 ## Version 1.1.0 (2026-02-07)
 
 ### Midnight Compatibility Update
