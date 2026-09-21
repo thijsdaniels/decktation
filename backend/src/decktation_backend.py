@@ -33,6 +33,46 @@ for dependency_path in dependency_paths:
         sys.path.insert(0, dependency_path)
         logger.info(f"Added dependency path: {dependency_path}")
 
+# Decky plugins run under systemd as root, which lacks the desktop user's session
+# environment. Discover and set the user's runtime directory so that PortAudio
+# and PipeWire can connect to the user session audio daemon (allowing USB, Bluetooth,
+# and dynamically selected default microphones to be captured).
+def _setup_audio_environment():
+    if os.environ.get("XDG_RUNTIME_DIR") and os.environ.get("XDG_RUNTIME_DIR") != "/run/user/0":
+        return os.environ.get("XDG_RUNTIME_DIR")
+    candidate_uids = []
+    decky_user_home = getattr(decky, "DECKY_USER_HOME", None) or os.environ.get("DECKY_USER_HOME")
+    if decky_user_home and os.path.exists(decky_user_home):
+        try:
+            candidate_uids.append(str(os.stat(decky_user_home).st_uid))
+        except Exception:
+            pass
+    if os.environ.get("SUDO_UID"):
+        candidate_uids.append(os.environ["SUDO_UID"])
+    if os.path.exists("/run/user"):
+        try:
+            for entry in sorted(os.listdir("/run/user")):
+                if entry != "0" and entry.isdigit():
+                    candidate_uids.append(entry)
+        except Exception:
+            pass
+    candidate_uids.extend(["1000", "1001", "1002"])
+
+    seen = set()
+    for uid in candidate_uids:
+        if uid in seen:
+            continue
+        seen.add(uid)
+        run_dir = f"/run/user/{uid}"
+        if os.path.exists(os.path.join(run_dir, "pipewire-0")):
+            os.environ["XDG_RUNTIME_DIR"] = run_dir
+            os.environ["PIPEWIRE_RUNTIME_DIR"] = run_dir
+            os.environ["PULSE_SERVER"] = f"unix:{run_dir}/pulse/native"
+            logger.info(f"Configured audio runtime directory: {run_dir}")
+            return run_dir
+
+_setup_audio_environment()
+
 # sounddevice normally searches only system library paths on Linux. Store
 # builds bundle PortAudio in bin/lib so the plugin works on clean SteamOS
 # installations without modifying the read-only operating system.

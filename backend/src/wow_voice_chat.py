@@ -12,6 +12,37 @@ import threading
 import subprocess
 from pathlib import Path
 from faster_whisper import WhisperModel
+
+
+def _setup_audio_environment():
+    if os.environ.get("XDG_RUNTIME_DIR") and os.environ.get("XDG_RUNTIME_DIR") != "/run/user/0":
+        return os.environ.get("XDG_RUNTIME_DIR")
+    candidate_uids = []
+    if os.environ.get("SUDO_UID"):
+        candidate_uids.append(os.environ["SUDO_UID"])
+    if os.path.exists("/run/user"):
+        try:
+            for entry in sorted(os.listdir("/run/user")):
+                if entry != "0" and entry.isdigit():
+                    candidate_uids.append(entry)
+        except Exception:
+            pass
+    candidate_uids.extend(["1000", "1001", "1002"])
+
+    seen = set()
+    for uid in candidate_uids:
+        if uid in seen:
+            continue
+        seen.add(uid)
+        run_dir = f"/run/user/{uid}"
+        if os.path.exists(os.path.join(run_dir, "pipewire-0")):
+            os.environ["XDG_RUNTIME_DIR"] = run_dir
+            os.environ["PIPEWIRE_RUNTIME_DIR"] = run_dir
+            os.environ["PULSE_SERVER"] = f"unix:{run_dir}/pulse/native"
+            return run_dir
+
+_setup_audio_environment()
+
 import sounddevice as sd
 import numpy as np
 import wave
