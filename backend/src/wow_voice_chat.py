@@ -41,6 +41,22 @@ def _setup_audio_environment():
             os.environ["PULSE_SERVER"] = f"unix:{run_dir}/pulse/native"
             return run_dir
 
+
+def ensure_audio_environment():
+    """Ensure XDG_RUNTIME_DIR points to a valid PipeWire session and sounddevice is connected."""
+    current_run_dir = os.environ.get("XDG_RUNTIME_DIR")
+    pipewire_available = current_run_dir and os.path.exists(os.path.join(current_run_dir, "pipewire-0"))
+    if not pipewire_available:
+        new_dir = _setup_audio_environment()
+        if new_dir:
+            try:
+                import sounddevice as sd
+                sd._terminate()
+                sd._initialize()
+            except Exception:
+                pass
+
+
 _setup_audio_environment()
 
 import sounddevice as sd
@@ -650,6 +666,7 @@ class WoWVoiceChat:
 
     def start_recording(self):
         """Start recording audio (for push-to-talk)"""
+        ensure_audio_environment()
         with self.recording_lock:
             if self.is_recording:
                 return

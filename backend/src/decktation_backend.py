@@ -71,6 +71,23 @@ def _setup_audio_environment():
             logger.info(f"Configured audio runtime directory: {run_dir}")
             return run_dir
 
+
+def ensure_audio_environment():
+    """Ensure XDG_RUNTIME_DIR points to a valid PipeWire session and sounddevice is connected."""
+    current_run_dir = os.environ.get("XDG_RUNTIME_DIR")
+    pipewire_available = current_run_dir and os.path.exists(os.path.join(current_run_dir, "pipewire-0"))
+    if not pipewire_available:
+        new_dir = _setup_audio_environment()
+        if new_dir and "sounddevice" in sys.modules:
+            try:
+                import sounddevice as sd
+                sd._terminate()
+                sd._initialize()
+                logger.info(f"Reconnected sounddevice to PipeWire ({new_dir})")
+            except Exception as e:
+                logger.warning(f"Failed to reinitialize sounddevice: {e}")
+
+
 _setup_audio_environment()
 
 # sounddevice normally searches only system library paths on Linux. Store
@@ -920,6 +937,7 @@ class Plugin:
     async def start_recording(self):
         """Start recording audio"""
         try:
+            ensure_audio_environment()
             if Plugin.voice_service is None:
                 logger.error("Voice service not initialized")
                 return {"success": False, "error": "Service not initialized"}
