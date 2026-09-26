@@ -552,6 +552,9 @@ class WoWVoiceChat:
             if self.manual_send:
                 send_key = None
 
+        chat_open_delay = float(self.preset.get("chat_open_delay", 0))
+        chat_send_delay = float(self.preset.get("chat_send_delay", 0))
+
         try:
             # Press key to open chat input box (e.g. Enter for most games)
             if open_key == "enter":
@@ -559,14 +562,23 @@ class WoWVoiceChat:
                 if result.returncode != 0:
                     logger.error(f"ydotool key failed: {result.stderr}")
                     self._report_diagnostic("text_injection.failed")
-                time.sleep(0.1)
+                if chat_open_delay > 0:
+                    time.sleep(chat_open_delay)
 
-            # Type the full message with channel command
-            result = subprocess.run([ydotool, "type", "--", full_message], capture_output=True, text=True, env=env)
+            # Type the full message with 1ms delay by default to avoid evdev buffer overflow
+            key_delay = str(self.preset.get("key_delay", 1))
+            key_hold = str(self.preset.get("key_hold", 0))
+            result = subprocess.run(
+                [ydotool, "type", "-d", key_delay, "-H", key_hold, "--", full_message],
+                capture_output=True,
+                text=True,
+                env=env,
+            )
             if result.returncode != 0:
                 logger.error(f"ydotool type failed: {result.stderr}")
                 self._report_diagnostic("text_injection.failed")
-            time.sleep(0.1)
+            if chat_send_delay > 0:
+                time.sleep(chat_send_delay)
 
             # Press key to send (e.g. Enter for most games)
             if send_key == "enter":
