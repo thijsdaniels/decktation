@@ -9,6 +9,7 @@
 - Added talent tree fallback to determine active spec based on spent talent points in Classic
 - Registered `PLAYER_TALENT_UPDATE` and `CHARACTER_POINTS_CHANGED` events
 - Fixed duplicate `EventFrame:SetScript("OnEvent")` call overwriting main event handlers
+- Added fallback to Classic zone APIs (`GetRealZoneText`, `GetZoneText`, `GetSubZoneText`) when `C_Map` is unavailable or returns empty (e.g. on WoW Forever beta maps)
 
 **Added:**
 - Added interface numbers for Classic Era and WoW Forever to TOC
