@@ -12,7 +12,7 @@ import threading
 import subprocess
 from pathlib import Path
 from faster_whisper import WhisperModel
-<<<<<<< HEAD
+
 
 
 def _setup_audio_environment():
