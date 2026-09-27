@@ -57,20 +57,64 @@ local function Initialize()
     SaveContext()
 end
 
--- Get zone information using modern C_Map API (Midnight-compatible)
+-- Get zone information using modern C_Map API with fallback to Classic APIs
 local function GetZoneInfo()
-    local mapID = C_Map.GetBestMapForUnit("player")
-    if not mapID then
-        return "", ""
+    local zone = ""
+    local subzone = ""
+
+    -- Try modern C_Map API first (Retail / Midnight / TWW)
+    if C_Map and C_Map.GetBestMapForUnit and C_Map.GetMapInfo then
+        local mapID = C_Map.GetBestMapForUnit("player")
+        if mapID then
+            local mapInfo = C_Map.GetMapInfo(mapID)
+            if mapInfo and mapInfo.name and mapInfo.name ~= "" then
+                zone = mapInfo.name
+            end
+        end
     end
 
-    local mapInfo = C_Map.GetMapInfo(mapID)
-    local zone = mapInfo and mapInfo.name or ""
+    -- Fallback to Classic / legacy zone APIs if C_Map returned nil or empty
+    if not zone or zone == "" then
+        if GetRealZoneText then
+            zone = GetRealZoneText() or ""
+        end
+        if (not zone or zone == "") and GetZoneText then
+            zone = GetZoneText() or ""
+        end
+    end
 
-    -- Get subzone from minimap text (still works in Midnight)
-    local subzone = GetMinimapZoneText() or ""
+    -- Get subzone from minimap or subzone text
+    if GetMinimapZoneText then
+        subzone = GetMinimapZoneText() or ""
+    end
+    if (not subzone or subzone == "") and GetSubZoneText then
+        subzone = GetSubZoneText() or ""
+    end
 
-    return zone, subzone
+    return zone or "", subzone or ""
+end
+
+-- Get specialization (Retail) or talent tree with most points (Classic)
+local function GetPlayerSpec()
+    if GetSpecialization then
+        local specIndex = GetSpecialization()
+        if specIndex then
+            local _, specName = GetSpecializationInfo(specIndex)
+            return specName or ""
+        end
+    elseif GetNumTalentTabs and GetTalentTabInfo then
+        local maxPoints = 0
+        local activeSpec = ""
+        for tabIndex = 1, GetNumTalentTabs() do
+            local name, _, pointsSpent = GetTalentTabInfo(tabIndex)
+            if pointsSpent and pointsSpent > maxPoints then
+                maxPoints = pointsSpent
+                activeSpec = name or ""
+            end
+        end
+        return activeSpec
+    end
+    return ""
 end
 
 -- Update current context
@@ -145,13 +189,7 @@ function UpdateContext()
         Context.class = classToken or ""
 
         -- Get specialization
-        local specIndex = GetSpecialization()
-        if specIndex then
-            local _, specName = GetSpecializationInfo(specIndex)
-            Context.spec = specName or ""
-        else
-            Context.spec = ""
-        end
+        Context.spec = GetPlayerSpec()
 
         Context.lastUpdate = time()
     end)
@@ -300,6 +338,9 @@ EventFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
 EventFrame:RegisterEvent("ENCOUNTER_START")
 EventFrame:RegisterEvent("ENCOUNTER_END")
 EventFrame:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
+EventFrame:RegisterEvent("PLAYER_TALENT_UPDATE")
+EventFrame:RegisterEvent("CHARACTER_POINTS_CHANGED")
+EventFrame:RegisterEvent("PLAYER_LOGOUT")
 
 EventFrame:SetScript("OnEvent", function(self, event, ...)
     if event == "PLAYER_LOGIN" then
@@ -323,20 +364,10 @@ EventFrame:SetScript("OnEvent", function(self, event, ...)
     elseif event == "ENCOUNTER_END" then
         Context.boss = ""
         SaveContext()
-    elseif event == "PLAYER_SPECIALIZATION_CHANGED" then
-        local specIndex = GetSpecialization()
-        if specIndex then
-            local _, specName = GetSpecializationInfo(specIndex)
-            Context.spec = specName or ""
-        end
+    elseif event == "PLAYER_SPECIALIZATION_CHANGED" or event == "PLAYER_TALENT_UPDATE" or event == "CHARACTER_POINTS_CHANGED" then
+        Context.spec = GetPlayerSpec()
         SaveContext()
-    end
-end)
-
--- Force save on logout
-EventFrame:RegisterEvent("PLAYER_LOGOUT")
-EventFrame:SetScript("OnEvent", function(self, event)
-    if event == "PLAYER_LOGOUT" then
+    elseif event == "PLAYER_LOGOUT" then
         SaveContext()
     end
 end)

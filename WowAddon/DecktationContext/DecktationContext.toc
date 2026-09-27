@@ -1,8 +1,8 @@
-## Interface: 120000
+## Interface: 120000, 11506, 16001, 160000
 ## Title: Decktation Context
 ## Notes: Exports WoW context for Decktation voice-to-text plugin
 ## Author: Decktation
-## Version: 1.1.0
+## Version: 1.1.1
 ## IconTexture: Interface\Icons\Ability_Warrior_CommandingShout
 ## SavedVariables: DecktationContextDB, DecktationErrorLog
 ## X-Category: Communication
