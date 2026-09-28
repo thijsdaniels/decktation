@@ -145,5 +145,5 @@ def test_build_prompt_from_context():
     }
 
     prompt, _ = service.build_prompt_from_context()
-    assert "base prompt words." in prompt
-    assert "Currently in Duskwood at Darkshire fighting Mor'Ladim with party members Hero1, Hero2." in prompt
+    assert "base prompt words" in prompt
+    assert "in Duskwood, Darkshire, fighting Mor'Ladim, party: Hero1, Hero2" in prompt
