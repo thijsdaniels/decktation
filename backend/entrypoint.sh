@@ -8,7 +8,7 @@ cp -R /runtime/python/. out/python/
 # Decky places backend/out under the installed plugin's bin/ directory. Keep
 # substantive Python backend source in backend/src; root main.py is only the
 # Decky Loader entry point.
-cp src/decktation_backend.py src/wow_voice_chat.py src/controller_listener.py \
+cp src/audio_runtime.py src/decktation_backend.py src/wow_voice_chat.py src/controller_listener.py \
     src/deck_hid.py src/gamepad_evdev.py src/telemetry.py src/convert_wow_context.py out/
 
 # Keep inference code and package license metadata, but omit installation-time

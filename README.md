@@ -149,6 +149,13 @@ Edit `defaults/game_presets.json` to add new games — no code changes needed. E
 - `default_channel` — channel to use when no prefix is spoken
 - `channels` — map of spoken words to slash-command prefixes
 - `whisper_prompt` — vocabulary hint for the Whisper model
+- `key_delay` — milliseconds between typed keys (default: `1`)
+- `key_hold` — milliseconds each typed key is held down (default: `0`)
+- `chat_open_delay` — seconds to wait after opening chat, before typing (default: `0`)
+- `chat_send_delay` — seconds to wait after typing, before sending chat (default: `0`)
+
+Timing values are optional. `key_delay` and `key_hold` are whole milliseconds
+passed to ydotool, while the chat delays are in seconds.
 
 ## Button Configuration
 

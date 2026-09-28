@@ -7,6 +7,14 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+## [0.3.17] - 2026-09-27
+
+### Fixed
+
+- Restored microphone capture when Decky starts outside the desktop PipeWire
+  session, including microphones that support stereo input only.
+- Made text injection faster while keeping configurable key and chat delays.
+
 ## [0.3.16] - 2026-09-17
 
 ### Added
